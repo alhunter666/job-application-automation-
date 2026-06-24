@@ -45,3 +45,7 @@
    * `description` (纯文本格式的职位描述 JD)
 5. **数据去重 (Deduplication):** 依据职位详情 URL 或 [职位名称 + 公司哈希] 进行碰撞检测，排除重复岗位。
 6. **本地存储 (Storage):** 将最终去重后的聚合数据输出到根目录下的 `easy_jobs_pool.json`。
+
+## 4. 前端交互与状态管理 (State Management)
+* **技术选型：** 使用 Streamlit 构建前端交互看板。
+* **状态锁存：** 为了避免用户在前端交互（如点击检索、增删关键词等）时导致 Streamlit 重新运行整个脚本而重复调用大模型 API，提取出的关键词必须锁存在 Streamlit 的 `st.session_state` 中。在后续操作中直接读取锁存状态，绝对禁止二次触发 Gemini API 调用，锁定 Token 成本并防止 API 滥用。
