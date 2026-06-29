@@ -49,3 +49,8 @@
 ## 4. 前端交互与状态管理 (State Management)
 * **技术选型：** 使用 Streamlit 构建前端交互看板。
 * **状态锁存：** 为了避免用户在前端交互（如点击检索、增删关键词等）时导致 Streamlit 重新运行整个脚本而重复调用大模型 API，提取出的关键词必须锁存在 Streamlit 的 `st.session_state` 中。在后续操作中直接读取锁存状态，绝对禁止二次触发 Gemini API 调用，锁定 Token 成本并防止 API 滥用。
+
+## 5. 简历/求职信自动定制系统 (Personalization Engine)
+* **技术实现：** 编写独立模块 `tailor_agent.py`，暴露核心函数 `generate_tailored_materials(cv_text, jd_text)`。
+* **业务匹配规则：** 自动交叉比对候选人简历与职位描述 (JD)，深入结合其“媒体项目经理（Media Project Manager）、管理多市场、负责程序化广告与社媒投放”的高价值核心资历，生成高转化率的定制求职信。
+* **锁存防刷：** 针对每一个岗位的定制结果，必须锁存在 `st.session_state` 的专属键中，防止触发 UI 重绘时的二次 Token 消耗。

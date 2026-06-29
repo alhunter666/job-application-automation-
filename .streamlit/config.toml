@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#FFA6B6"          # Pastel Pink Accent
+backgroundColor = "#FAFAF9"       # Warm Off-White / Soft Cream
+secondaryBackgroundColor = "#F3EBEF" # Soft Pastel Silver / Light Lavender Gray
+textColor = "#2D2E33"             # Charcoal Text
+font = "sans serif"
