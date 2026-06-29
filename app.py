@@ -401,19 +401,38 @@ if st.session_state.current_step == 1:
             else:
                 with st.spinner("Verifying connection..."):
                     try:
-                        import llm_router
-                        test_models = PROVIDER_MODELS[selected_provider]
-                        test_model = test_models[0]
-                        
-                        llm_router.call_llm(
-                            provider=selected_provider,
-                            api_key=api_key_input,
-                            model_name=test_model,
-                            system_instruction="You are a connection verifier. Respond only with 'OK'.",
-                            prompt="Ping",
-                            response_format_json=False
-                        )
-                        
+                        if selected_provider == "Gemini":
+                            import google.generativeai as genai
+                            genai.configure(api_key=api_key_input)
+                            available_models = []
+                            for m in genai.list_models():
+                                if "generateContent" in m.supported_generation_methods:
+                                    model_name = m.name.replace("models/", "")
+                                    available_models.append(model_name)
+                            
+                            if not available_models:
+                                raise ValueError("No models support generateContent for this key.")
+                                
+                            st.session_state.available_models = available_models
+                            
+                            # Test call with the first available model
+                            model = genai.GenerativeModel(available_models[0])
+                            response = model.generate_content("Ping", generation_config={"max_output_tokens": 5})
+                        else:
+                            import llm_router
+                            test_models = PROVIDER_MODELS[selected_provider]
+                            test_model = test_models[0]
+                            
+                            llm_router.call_llm(
+                                provider=selected_provider,
+                                api_key=api_key_input,
+                                model_name=test_model,
+                                system_instruction="You are a connection verifier. Respond only with 'OK'.",
+                                prompt="Ping",
+                                response_format_json=False
+                            )
+                            st.session_state.available_models = PROVIDER_MODELS[selected_provider]
+                            
                         st.session_state.api_connection_status = "success"
                         st.session_state.api_connection_error = ""
                         st.session_state.llm_api_key = api_key_input
@@ -435,7 +454,9 @@ if st.session_state.current_step == 1:
         st.write("---")
         st.subheader(LANG[selected_lang]["model_selection"])
         
-        provider_models = PROVIDER_MODELS[selected_provider]
+        provider_models = st.session_state.get("available_models", PROVIDER_MODELS[selected_provider])
+        if st.session_state.llm_provider != selected_provider:
+             provider_models = PROVIDER_MODELS[selected_provider]
         
         # Load safe default model selections based on provider
         try:
@@ -499,7 +520,7 @@ elif st.session_state.current_step == 2:
             if not cv_text.strip():
                 st.warning(LANG[selected_lang]["cv_empty_warning"])
             else:
-                provider_models = PROVIDER_MODELS[st.session_state.llm_provider]
+                provider_models = st.session_state.get("available_models", PROVIDER_MODELS[st.session_state.llm_provider])
                 cv_model_selection = st.session_state.get("cv_model", provider_models[0])
                 key_for_hash = f"{cv_text.strip()}-{os.getenv('LLM_API_KEY', '')}-{cv_model_selection}"
                 current_hash = hashlib.md5(key_for_hash.encode('utf-8')).hexdigest()
@@ -776,7 +797,7 @@ elif st.session_state.current_step == 4:
         cv_hash_val = st.session_state.cv_hash if st.session_state.cv_hash else ""
         current_job_sig = f"{cv_hash_val}-{selected_title}-{jd_hash}-{template_style}"
         
-        provider_models = PROVIDER_MODELS[st.session_state.llm_provider]
+        provider_models = st.session_state.get("available_models", PROVIDER_MODELS[st.session_state.llm_provider])
         tailor_model = st.session_state.get("tailor_model", provider_models[0])
         
         if st.button(LANG[selected_lang]["generate_cl_btn"], type="primary", use_container_width=True):
