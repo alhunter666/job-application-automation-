@@ -61,6 +61,7 @@ LANG = {
         "sandbox_success": "Security assertion active.",
         "parse_failed": "Parsing failed: ",
         "fallback_activated": "Using default fallback keywords.",
+        "keywords_header": "Keyword Selection",
         "matching_header": "Job Matching",
         "no_keywords": "No keywords found. Using fallback: ['Project Manager'].",
         "human_in_loop": "Select keywords to search:",
@@ -130,6 +131,7 @@ LANG = {
         "sandbox_success": "Sécurité active.",
         "parse_failed": "Échec : ",
         "fallback_activated": "Mots-clés par défaut activés.",
+        "keywords_header": "Sélection des Mots-clés",
         "matching_header": "Recherche d'Emplois",
         "no_keywords": "Aucun mot-clé. Valeur par défaut : ['Project Manager'].",
         "human_in_loop": "Sélectionnez les mots-clés :",
@@ -324,17 +326,19 @@ st.session_state.selected_lang = selected_lang
 st.sidebar.write("---")
 st.sidebar.markdown("<h4 style='color: #5A6275;'>Flow Steps</h4>", unsafe_allow_html=True)
 
-# Multilingual labels for sidebar steps (Emoji-free)
+# Multilingual labels for sidebar steps (Emoji-free) - 5 Steps
 step1_lbl = "1. Configuration"
 step2_lbl = "2. CV Ingestion" if selected_lang == "English" else "2. Saisie du CV"
-step3_lbl = "3. Job Matching" if selected_lang == "English" else "3. Recherche d'Emploi"
-step4_lbl = "4. Tailoring" if selected_lang == "English" else "4. Personnalisation"
+step3_lbl = "3. Keywords" if selected_lang == "English" else "3. Mots-clés"
+step4_lbl = "4. Job Matching" if selected_lang == "English" else "4. Recherche d'Emploi"
+step5_lbl = "5. Tailoring" if selected_lang == "English" else "5. Personnalisation"
 
 # Highlight active step using Y2K monospace notation
 lbl_s1 = f"[Active] {step1_lbl}" if st.session_state.current_step == 1 else step1_lbl
 lbl_s2 = f"[Active] {step2_lbl}" if st.session_state.current_step == 2 else step2_lbl
 lbl_s3 = f"[Active] {step3_lbl}" if st.session_state.current_step == 3 else step3_lbl
 lbl_s4 = f"[Active] {step4_lbl}" if st.session_state.current_step == 4 else step4_lbl
+lbl_s5 = f"[Active] {step5_lbl}" if st.session_state.current_step == 5 else step5_lbl
 
 # Navigation buttons with locks
 if st.sidebar.button(lbl_s1, use_container_width=True):
@@ -350,9 +354,14 @@ if st.sidebar.button(lbl_s3, use_container_width=True, disabled=s3_disabled, hel
     st.session_state.current_step = 3
     st.rerun()
 
-s4_disabled = not st.session_state.retrieved_jobs
-if st.sidebar.button(lbl_s4, use_container_width=True, disabled=s4_disabled, help="Ingest job records in Step 3 to unlock"):
+s4_disabled = not st.session_state.extracted_keywords
+if st.sidebar.button(lbl_s4, use_container_width=True, disabled=s4_disabled, help="Confirm keywords in Step 3 to unlock"):
     st.session_state.current_step = 4
+    st.rerun()
+
+s5_disabled = not st.session_state.retrieved_jobs
+if st.sidebar.button(lbl_s5, use_container_width=True, disabled=s5_disabled, help="Ingest job records in Step 4 to unlock"):
+    st.session_state.current_step = 5
     st.rerun()
 
 # ----------------- MAIN TITLE (DM Sans Header) -----------------
@@ -484,7 +493,7 @@ if st.session_state.current_step == 1:
         )
         st.session_state.demo_mode = demo_mode
 
-# ----------------- STEP 2: CV PARSING & KEYWORDS -----------------
+# ----------------- STEP 2: CV PARSING & INGESTION -----------------
 elif st.session_state.current_step == 2:
     with st.container(border=True):
         st.subheader(LANG[selected_lang]["cv_input_header"])
@@ -541,9 +550,11 @@ elif st.session_state.current_step == 2:
                             st.session_state.extracted_keywords = FALLBACK_KEYWORDS
                             st.session_state.cv_hash = current_hash
                             status.update(label=LANG[selected_lang]["fallback_activated"], state="error")
-                            
-        st.write("---")
-        st.subheader(LANG[selected_lang]["matching_header"])
+
+# ----------------- STEP 3: KEYWORD SELECTION -----------------
+elif st.session_state.current_step == 3:
+    with st.container(border=True):
+        st.subheader(LANG[selected_lang]["keywords_header"])
         
         if not st.session_state.extracted_keywords:
             st.info(LANG[selected_lang]["no_keywords"])
@@ -568,8 +579,8 @@ elif st.session_state.current_step == 2:
             
         st.session_state.final_keywords = final_keywords
 
-# ----------------- STEP 3: JOB MATCHING & INGESTION -----------------
-elif st.session_state.current_step == 3:
+# ----------------- STEP 4: JOB MATCHING & INGESTION -----------------
+elif st.session_state.current_step == 4:
     with st.container(border=True):
         st.subheader(LANG[selected_lang]["matching_header"])
         
@@ -778,8 +789,8 @@ elif st.session_state.current_step == 3:
             st.session_state.selected_org = selected_org
             st.session_state.selected_jd = selected_jd
 
-# ----------------- STEP 4: COVER LETTER & CV SUGGESTIONS -----------------
-elif st.session_state.current_step == 4:
+# ----------------- STEP 5: COVER LETTER & CV SUGGESTIONS -----------------
+elif st.session_state.current_step == 5:
     with st.container(border=True):
         st.subheader(LANG[selected_lang]["personalization_header"])
         
@@ -862,7 +873,7 @@ with col_prev:
             st.rerun()
 
 with col_next:
-    if st.session_state.current_step < 4:
+    if st.session_state.current_step < 5:
         can_proceed = True
         lock_message = ""
         
@@ -872,6 +883,10 @@ with col_next:
                 can_proceed = False
                 lock_message = "Please extract keywords from your CV before proceeding."
         elif st.session_state.current_step == 3:
+            if "final_keywords" not in st.session_state or not st.session_state.final_keywords:
+                can_proceed = False
+                lock_message = "Please select at least one search keyword."
+        elif st.session_state.current_step == 4:
             if not st.session_state.retrieved_jobs:
                 can_proceed = False
                 lock_message = "Please search and select a matched job advertisement."
